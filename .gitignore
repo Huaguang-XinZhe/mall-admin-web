@@ -12,3 +12,9 @@ yarn-error.log*
 *.ntvs*
 *.njsproj
 *.sln
+
+# 忽略 build 目录
+build/
+
+# 忽略 .env 文件
+.env
