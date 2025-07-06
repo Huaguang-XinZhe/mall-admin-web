@@ -1,6 +1,7 @@
 services:
   mall-admin-web:
     build: .
+    image: mall-admin-web
     container_name: mall-admin-web
     restart: always
     ports:
