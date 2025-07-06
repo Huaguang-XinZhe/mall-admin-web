@@ -38,6 +38,21 @@ export const constantRouterMap = [
         meta: { title: "仪表盘", icon: "dashboard" }
       }
     ]
+  },
+  {
+    path: "/invite",
+    component: Layout,
+    redirect: "/invite/list",
+    name: "invite",
+    meta: { title: "邀请管理", icon: "invite" },
+    children: [
+      {
+        path: "list",
+        name: "inviteList",
+        component: () => import("@/views/ums/invite/index"),
+        meta: { title: "邀请关系", icon: "invite" }
+      }
+    ]
   }
 ];
 
