@@ -172,13 +172,7 @@ export const asyncRouterMap = [
         meta: { title: "订单详情" },
         hidden: true
       },
-      {
-        path: "deliverOrderList",
-        name: "deliverOrderList",
-        component: () => import("@/views/oms/order/deliverOrderList"),
-        meta: { title: "发货列表" },
-        hidden: true
-      },
+
       {
         path: "orderSetting",
         name: "orderSetting",
@@ -202,6 +196,13 @@ export const asyncRouterMap = [
         name: "returnApplyDetail",
         component: () => import("@/views/oms/apply/applyDetail"),
         meta: { title: "退货原因详情" },
+        hidden: true
+      },
+      {
+        path: "wxDeliveryForm",
+        name: "wxDeliveryForm",
+        component: () => import("@/views/oms/order/wxDeliveryForm"),
+        meta: { title: "订单发货" },
         hidden: true
       }
     ]

@@ -112,12 +112,12 @@
               v-show="scope.row.status===0">关闭订单</el-button>
             <el-button
               size="mini"
-              @click="handleDeliveryOrder(scope.$index, scope.row)"
+              @click="handleWxDelivery(scope.$index, scope.row)"
               v-show="scope.row.status===1">订单发货</el-button>
             <el-button
               size="mini"
-              @click="handleViewLogistics(scope.$index, scope.row)"
-              v-show="scope.row.status===2||scope.row.status===3">订单跟踪</el-button>
+              @click="handleViewWxLogistics(scope.$index, scope.row)"
+              v-show="scope.row.status===2||scope.row.status===3">物流跟踪</el-button>
             <el-button
               size="mini"
               type="danger"
@@ -175,13 +175,30 @@
         <el-button type="primary" @click="handleCloseOrderConfirm">确 定</el-button>
       </span>
     </el-dialog>
-    <logistics-dialog v-model="logisticsDialogVisible"></logistics-dialog>
+    <wx-logistics-dialog 
+      v-model="wxLogisticsDialogVisible" 
+      :order-id="currentOrderId"
+      :order-sn="currentOrderSn">
+    </wx-logistics-dialog>
+    
+    <!-- 微信发货对话框 -->
+    <el-dialog
+      title="微信物流发货"
+      :visible.sync="wxDeliveryDialogVisible"
+      width="50%">
+      <wx-delivery-form
+        :order-id="currentOrderId"
+        :order-sn="currentOrderSn"
+        @submit-success="handleWxDeliverySuccess">
+      </wx-delivery-form>
+    </el-dialog>
   </div>
 </template>
 <script>
   import {fetchList,closeOrder,deleteOrder} from '@/api/order'
   import {formatDate} from '@/utils/date';
-  import LogisticsDialog from '@/views/oms/order/components/logisticsDialog';
+  import WxLogisticsDialog from '@/views/oms/order/components/wxLogisticsDialog';
+  import WxDeliveryForm from '@/views/oms/order/wxDeliveryForm';
   const defaultListQuery = {
     pageNum: 1,
     pageSize: 10,
@@ -194,7 +211,7 @@
   };
   export default {
     name: "orderList",
-    components:{LogisticsDialog},
+    components:{WxLogisticsDialog, WxDeliveryForm},
     data() {
       return {
         listQuery: Object.assign({}, defaultListQuery),
@@ -248,6 +265,10 @@
           {
             label: 'APP订单',
             value: 1
+          },
+          {
+            label: '微信小程序订单',
+            value: 2
           }
         ],
         operateOptions: [
@@ -264,7 +285,10 @@
             value: 3
           }
         ],
-        logisticsDialogVisible:false
+        wxLogisticsDialogVisible:false,
+        wxDeliveryDialogVisible:false,
+        currentOrderId: null,
+        currentOrderSn: ''
       }
     },
     created() {
@@ -276,9 +300,7 @@
         return formatDate(date, 'yyyy-MM-dd hh:mm:ss')
       },
       formatPayType(value) {
-        if (value === 1) {
-          return '支付宝';
-        } else if (value === 2) {
+        if (value === 2) {
           return '微信';
         } else {
           return '未支付';
@@ -287,6 +309,8 @@
       formatSourceType(value) {
         if (value === 1) {
           return 'APP订单';
+        } else if (value === 2) {
+          return '微信小程序订单';
         } else {
           return 'PC订单';
         }
@@ -325,12 +349,24 @@
         this.closeOrder.dialogVisible=true;
         this.closeOrder.orderIds=[row.id];
       },
-      handleDeliveryOrder(index, row){
-        let listItem = this.covertOrder(row);
-        this.$router.push({path:'/oms/deliverOrderList',query:{list:[listItem]}})
+      handleWxDelivery(index, row){
+        this.currentOrderId = row.id;
+        this.currentOrderSn = row.orderSn;
+        this.wxDeliveryDialogVisible = true;
       },
-      handleViewLogistics(index, row){
-        this.logisticsDialogVisible=true;
+      handleWxDeliverySuccess(){
+        this.wxDeliveryDialogVisible = false;
+        this.getList();
+        this.$message({
+          message: '发货成功',
+          type: 'success',
+          duration: 1000
+        });
+      },
+      handleViewWxLogistics(index, row){
+        this.currentOrderId = row.id;
+        this.currentOrderSn = row.orderSn;
+        this.wxLogisticsDialogVisible = true;
       },
       handleDeleteOrder(index, row){
         let ids=[];
@@ -348,13 +384,13 @@
         }
         if(this.operateType===1){
           //批量发货
-          let list=[];
+          let ids = [];
           for(let i=0;i<this.multipleSelection.length;i++){
             if(this.multipleSelection[i].status===1){
-              list.push(this.covertOrder(this.multipleSelection[i]));
+              ids.push(this.multipleSelection[i].id);
             }
           }
-          if(list.length===0){
+          if(ids.length===0){
             this.$message({
               message: '选中订单中没有可以发货的订单',
               type: 'warning',
@@ -362,7 +398,11 @@
             });
             return;
           }
-          this.$router.push({path:'/oms/deliverOrderList',query:{list:list}})
+          this.$message({
+            message: '暂不支持批量发货，请单个订单进行发货操作',
+            type: 'warning',
+            duration: 1000
+          });
         }else if(this.operateType===2){
           //关闭订单
           this.closeOrder.orderIds=[];
@@ -437,20 +477,7 @@
           });
         })
       },
-      covertOrder(order){
-        let address=order.receiverProvince+order.receiverCity+order.receiverRegion+order.receiverDetailAddress;
-        let listItem={
-          orderId:order.id,
-          orderSn:order.orderSn,
-          receiverName:order.receiverName,
-          receiverPhone:order.receiverPhone,
-          receiverPostCode:order.receiverPostCode,
-          address:address,
-          deliveryCompany:null,
-          deliverySn:null
-        };
-        return listItem;
-      }
+
     }
   }
 </script>

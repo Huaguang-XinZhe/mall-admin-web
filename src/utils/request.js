@@ -9,25 +9,49 @@ const service = axios.create({
   timeout: 15000 // 请求超时时间
 })
 
-// request拦截器
-service.interceptors.request.use(config => {
-  if (store.getters.token) {
-    config.headers['Authorization'] = getToken() // 让每个请求携带自定义token 请根据实际情况自行修改
+// 请求拦截器
+service.interceptors.request.use(
+  config => {
+    if (store.getters.token) {
+      config.headers['Authorization'] = getToken() // 直接使用token，不添加Bearer前缀
+    }
+    
+    // 如果是微信物流相关API，修改baseURL为新后端地址
+    if (config.url.startsWith('/wx-delivery/')) {
+      config.baseURL = 'https://new.boyangchuanggu.com/api'
+    }
+    
+    return config
+  },
+  error => {
+    // Do something with request error
+    console.log(error) // for debug
+    Promise.reject(error)
   }
-  return config
-}, error => {
-  // Do something with request error
-  console.log(error) // for debug
-  Promise.reject(error)
-})
+)
 
-// respone拦截器
+// 响应拦截器
 service.interceptors.response.use(
   response => {
-  /**
-  * code为非200是抛错 可结合自己业务进行修改
-  */
+    /**
+     * code为非200是抛错 可结合自己业务进行修改
+     */
     const res = response.data
+    // 处理新后端API的响应格式
+    if (response.config.url.includes('/wx-delivery/')) {
+      // 新后端API返回格式: { code: 200, data: {}, message: '' }
+      if (res.code !== 200) {
+        Message({
+          message: res.message || '操作失败',
+          type: 'error',
+          duration: 3 * 1000
+        })
+        return Promise.reject(res.message || 'Error')
+      } else {
+        return res
+      }
+    }
+    // 处理老后端API的响应格式
     if (res.code !== 200) {
       Message({
         message: res.message,
@@ -49,7 +73,7 @@ service.interceptors.response.use(
       }
       return Promise.reject('error')
     } else {
-      return response.data
+      return res
     }
   },
   error => {
